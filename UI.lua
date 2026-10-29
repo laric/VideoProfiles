@@ -133,8 +133,9 @@ StaticPopupDialogs["VIDEOPROFILES_NEW"] = {
     OnAccept = function(self)
         local name = strtrim(PopupEditBox(self):GetText())
         ns.commands.save.run(name)
-        UI.selected = ns.FindProfile(name) or UI.selected
-        UI:Refresh()
+        if ns.FindProfile(name) then
+            UI:Select(ns.FindProfile(name))
+        end
     end,
     EditBoxOnEnterPressed = AcceptOnEnter,
     EditBoxOnEscapePressed = function(editBox) editBox:GetParent():Hide() end,
@@ -169,6 +170,29 @@ StaticPopupDialogs["VIDEOPROFILES_RENAME"] = {
     preferredIndex = 3,
 }
 
+StaticPopupDialogs["VIDEOPROFILES_COPY"] = {
+    text = "Copy '%s' to a new profile named:",
+    button1 = ACCEPT,
+    button2 = CANCEL,
+    hasEditBox = true,
+    OnShow = function(self, source)
+        local editBox = PopupEditBox(self)
+        editBox:SetText(ns.FreeProfileName(source))
+        editBox:HighlightText()
+        editBox:SetFocus()
+    end,
+    OnAccept = function(self, source)
+        local new = ns.CopyToProfile(source, strtrim(PopupEditBox(self):GetText()))
+        if new then UI:Select(new) end
+    end,
+    EditBoxOnEnterPressed = AcceptOnEnter,
+    EditBoxOnEscapePressed = function(editBox) editBox:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
 StaticPopupDialogs["VIDEOPROFILES_DELETE"] = {
     text = "Delete the profile '%s'?",
     button1 = DELETE,
@@ -185,47 +209,60 @@ StaticPopupDialogs["VIDEOPROFILES_DELETE"] = {
 
 local buttons = {}
 
-local function AddButton(label, needsSelection, onClick)
+-- needs: nil for always enabled, "profile" when a profile must be selected,
+-- "any" when a profile or a preset will do.
+local function AddButton(label, needs, onClick)
     local button = CreateFrame("Button", nil, UI, "UIPanelButtonTemplate")
-    button:SetSize(84, 22)
+    button:SetSize(74, 22)
     if #buttons == 0 then
         button:SetPoint("BOTTOMLEFT", 0, 0)
     else
         button:SetPoint("LEFT", buttons[#buttons], "RIGHT", 4, 0)
     end
     button:SetText(label)
-    button.needsSelection = needsSelection
+    button.needs = needs
     button:SetScript("OnClick", onClick)
     table.insert(buttons, button)
 end
 
-AddButton("New", false, function()
+AddButton("New", nil, function()
     StaticPopup_Show("VIDEOPROFILES_NEW")
 end)
-AddButton("Apply", true, function()
-    ns.commands.apply.run(UI.selected)
+AddButton("Copy", "any", function()
+    local name = UI:SelectedName()
+    StaticPopup_Show("VIDEOPROFILES_COPY", name, nil, name)
+end)
+AddButton("Apply", "any", function()
+    if UI.preset then
+        ns.commands.usepreset.run(UI.preset.name)
+    else
+        ns.commands.apply.run(UI.selected)
+    end
     UI:Refresh()
 end)
-AddButton("Update", true, function()
+AddButton("Update", "profile", function()
     ns.commands.update.run(UI.selected)
     UI:Refresh()
 end)
-AddButton("Rename", true, function()
+AddButton("Rename", "profile", function()
     StaticPopup_Show("VIDEOPROFILES_RENAME", UI.selected, nil, UI.selected)
 end)
-AddButton("Delete", true, function()
+AddButton("Delete", "profile", function()
     StaticPopup_Show("VIDEOPROFILES_DELETE", UI.selected, nil, UI.selected)
 end)
-AddButton("Export", true, function()
+AddButton("Export", "profile", function()
     ns.ShowExport(UI.selected)
 end)
-AddButton("Import", false, function()
+AddButton("Import", nil, function()
     ns.ShowImport()
 end)
 
 table.insert(UI.refreshers, function()
     for _, button in ipairs(buttons) do
-        button:SetEnabled(not button.needsSelection or UI.selected ~= nil)
+        local enabled = not button.needs
+            or button.needs == "profile" and UI.selected ~= nil
+            or button.needs == "any" and UI:SelectedName() ~= nil
+        button:SetEnabled(enabled)
     end
 end)
 
