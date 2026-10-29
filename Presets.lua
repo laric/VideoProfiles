@@ -10,11 +10,27 @@
 --       notes = "One line on what it is for.",
 --       cvars = { raidGraphicsSpellDensity = 0, ... },
 --   })
+-- or straight from an export string made in game with /vp preset export:
+--   ns.AddPreset({ string = "VP2:..." })
+-- The string's name, author and notes are used unless the table sets them.
 local addonName, ns = ...
 
 ns.presets = {}
 
 function ns.AddPreset(preset)
+    if preset.string then
+        local name, values, _, meta = ns.DecodeProfile(preset.string)
+        if not name then
+            -- A broken string is the addon's fault, so say which preset it was.
+            geterrorhandler()("VideoProfiles: bundled preset " .. tostring(preset.name or "?") .. ": " .. values)
+            return
+        end
+        preset.name = preset.name or name
+        preset.author = preset.author or meta.author
+        preset.notes = preset.notes or meta.notes
+        preset.cvars = values
+        preset.string = nil
+    end
     local cvars = {}
     -- GetCVar returns strings, so store values the same way.
     for name, value in pairs(preset.cvars) do
