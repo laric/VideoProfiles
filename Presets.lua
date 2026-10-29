@@ -52,3 +52,28 @@ ns.AddCommand("presets", "", "list the suggested settings that come with the add
             .. (preset.notes and (": " .. preset.notes) or ""))
     end
 end)
+
+-- Only the preset's own CVars are written. The settings then no longer match
+-- the active profile, so that is cleared.
+function ns.ApplyPreset(preset)
+    local changed = ns.ApplyValues(preset.cvars)
+    if changed and changed > 0 then ns.db.active = nil end
+    return changed
+end
+
+local function NoPreset(name)
+    ns.Print("No preset called '" .. name .. "'. Use /vp presets to see them.")
+end
+
+ns.AddCommand("usepreset", "<name>", "apply a preset's settings, keeping the rest of yours", function(name)
+    local preset = name ~= "" and ns.FindPreset(name)
+    if not preset then return NoPreset(name) end
+    local changed = ns.ApplyPreset(preset)
+    if not changed then return end
+    if changed == 0 then
+        ns.Print("Your settings already match the preset '" .. preset.name .. "'.")
+    else
+        ns.Print("Applied the preset '" .. preset.name .. "' (" .. changed .. " settings changed).")
+        if ns.db.askReload then StaticPopup_Show("VIDEOPROFILES_RELOAD", preset.name) end
+    end
+end)
