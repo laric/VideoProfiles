@@ -308,3 +308,13 @@ AddSubcommand("copy", "<name> [> <new>]", "copy a preset, or a whole profile, in
     if source == "" then return ns.Print("Usage: /vp preset copy <name> [> <new>]") end
     ns.CopyToPreset(source, new)
 end)
+
+AddSubcommand("export", "<name>", "show a preset as a string to share", function(name)
+    local preset = name ~= "" and ns.FindPreset(name)
+    if not preset then return NoPreset(name) end
+    ns.ShowExportPreset(preset)
+end)
+
+AddSubcommand("import", "[string]", "add a preset from an export string (same as /vp import)", function(text)
+    ns.commands.import.run(text)
+end)
