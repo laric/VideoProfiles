@@ -128,8 +128,9 @@ end
 
 -- Copies a profile, or turns a preset into a profile of your own: your current
 -- settings with the preset's values on top. Returns the new profile's name.
-function ns.CopyToProfile(source, new)
-    local profile = ns.FindProfile(source)
+-- Profiles are looked up first, unless fromPreset is set.
+function ns.CopyToProfile(source, new, fromPreset)
+    local profile = not fromPreset and ns.FindProfile(source)
     local preset = not profile and ns.FindPreset(source)
     if not profile and not preset then
         ns.Print("No profile or preset called '" .. source .. "'.")

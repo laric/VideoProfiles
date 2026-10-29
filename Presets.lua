@@ -301,8 +301,9 @@ AddSubcommand("author", "<name> > <text>", "set who the preset is by, shown when
 end)
 
 -- Copies a preset, or a whole profile, into a new preset of the player's.
-function ns.CopyToPreset(source, new)
-    local preset = ns.FindPreset(source)
+-- Presets are looked up first, unless fromProfile is set.
+function ns.CopyToPreset(source, new, fromProfile)
+    local preset = not fromProfile and ns.FindPreset(source)
     local profile = not preset and ns.FindProfile(source)
     if not preset and not profile then
         return ns.Print("No preset or profile called '" .. source .. "'.")
