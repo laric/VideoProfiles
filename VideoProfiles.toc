@@ -16,6 +16,7 @@ Profiles.lua
 Apply.lua
 Diff.lua
 Presets.lua
+Presets\Examples.lua
 Export.lua
 CopyBox.lua
 Options.lua
