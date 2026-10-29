@@ -1,6 +1,8 @@
 -- VideoProfiles: example presets. Copy this file to add more; each file in
 -- Presets/ also needs a line in VideoProfiles.toc. Values are CVar values as
 -- /vp cvars shows them. CVars a client doesn't have are skipped when applying.
+-- A preset made in game can be added from its export string instead:
+--   ns.AddPreset({ string = "VP2:..." })
 local addonName, ns = ...
 
 ns.AddPreset({
