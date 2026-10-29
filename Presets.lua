@@ -201,3 +201,28 @@ AddSubcommand("new", "<name> [> <cvar> <cvar> ...]", "make a preset from your cu
             .. (#names == 0 and " Pick its settings in /vp, or with /vp preset add." or ""))
     end
 end)
+
+-- Adds a CVar to a preset with its current value, or takes it out.
+function ns.SetPresetCVar(preset, name, included)
+    preset.cvars[name] = included and ns.CaptureCurrent()[name] or nil
+    preset.saved = time()
+end
+
+AddSubcommand("add", "<name> > <cvar> <cvar> ...", "add CVars to a preset with your current values", function(rest)
+    local name, list = rest:match("^(.-)%s*>%s*(.-)$")
+    local preset = name and FindOwn(name)
+    if not preset then return end
+    local names, unknown = ParseCVarNames(list)
+    for _, cvar in ipairs(names) do ns.SetPresetCVar(preset, cvar, true) end
+    ns.Print("Added " .. #names .. " settings to '" .. preset.name .. "'."
+        .. (#unknown > 0 and (" Unknown: " .. table.concat(unknown, ", ") .. ".") or ""))
+end)
+
+AddSubcommand("remove", "<name> > <cvar> <cvar> ...", "take CVars out of a preset", function(rest)
+    local name, list = rest:match("^(.-)%s*>%s*(.-)$")
+    local preset = name and FindOwn(name)
+    if not preset then return end
+    local names = ParseCVarNames(list)
+    for _, cvar in ipairs(names) do ns.SetPresetCVar(preset, cvar, false) end
+    ns.Print("Removed " .. #names .. " settings from '" .. preset.name .. "'.")
+end)
