@@ -56,6 +56,9 @@ local function Create()
         if userInput and not box.onAccept then self:SetText(box.text) self:HighlightText() end
     end)
     scroll:SetScrollChild(edit)
+    -- The edit box is only as tall as its text, so a click below it focuses it too.
+    scroll:EnableMouse(true)
+    scroll:SetScript("OnMouseDown", function() edit:SetFocus() end)
     box.edit = edit
 end
 
@@ -71,14 +74,15 @@ function ns.ShowCopyBox(title, text)
     box.edit:HighlightText()
 end
 
--- An empty box to paste into. onAccept(text) runs when the button is clicked.
-function ns.ShowPasteBox(title, buttonText, onAccept)
+-- A box to type or paste into, empty or holding text. onAccept(text) runs
+-- when the button is clicked.
+function ns.ShowPasteBox(title, buttonText, onAccept, text)
     if not box then Create() end
     box.title:SetText(title)
     box.onAccept = onAccept
     box.accept:SetText(buttonText)
     box.accept:Show()
-    box.edit:SetText("")
+    box.edit:SetText(text or "")
     box:Show()
     box.edit:SetFocus()
 end

@@ -7,8 +7,10 @@ end
 ns.Print = Print
 
 -- Profiles are account-wide: VideoProfilesDB.profiles[name] = { cvars = { [cvar] = value }, saved = time() }
+-- Presets made by the player: VideoProfilesDB.presets[name] = { name =, cvars =, author =, notes =, saved = }
 local DEFAULTS = {
     profiles = {},
+    presets = {},
     askReload = true, -- offer a UI reload after applying a profile
 }
 
