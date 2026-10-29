@@ -33,6 +33,7 @@ end)
 
 -- Selects a profile by name, or a bundled preset. Only one is selected at a time.
 function UI:Select(name, preset)
+    if preset ~= self.preset then self.editing = false end
     self.selected = not preset and name or nil
     self.preset = preset
     self:Refresh()
@@ -168,8 +169,9 @@ StaticPopupDialogs["VIDEOPROFILES_NEW_PRESET"] = {
     OnAccept = function(self)
         local preset = ns.NewPreset(strtrim(PopupEditBox(self):GetText()))
         if preset then
-            UI.editing = true
             UI:Select(preset.name, preset)
+            UI.editing = true
+            UI:Refresh()
         end
     end,
     EditBoxOnEnterPressed = AcceptOnEnter,
@@ -343,12 +345,21 @@ local compareButton = CreateFrame("Button", nil, UI, "UIPanelButtonTemplate")
 compareButton:SetSize(200, 22)
 compareButton:SetPoint("LEFT", compareLabel, "RIGHT", 8, 0)
 
+local function IsOwnPreset()
+    return UI.preset ~= nil and not UI.preset.bundled
+end
+
 -- Switches between listing only the differences and every value in the profile.
+-- For one of your presets it opens the settings picker instead.
 local showAllButton = CreateFrame("Button", nil, UI, "UIPanelButtonTemplate")
 showAllButton:SetSize(100, 22)
 showAllButton:SetPoint("LEFT", compareButton, "RIGHT", 8, 0)
 showAllButton:SetScript("OnClick", function()
-    UI.showAll = not UI.showAll
+    if IsOwnPreset() then
+        UI.editing = not UI.editing
+    else
+        UI.showAll = not UI.showAll
+    end
     UI:Refresh()
 end)
 
@@ -362,6 +373,118 @@ local diffText = diffContent:CreateFontString(nil, "OVERLAY", "GameFontHighlight
 diffText:SetPoint("TOPLEFT")
 diffText:SetJustifyH("LEFT")
 diffText:SetJustifyV("TOP")
+
+-- The settings picker for one of your presets: a check box per CVar.
+local editor = CreateFrame("Frame", nil, diffContent)
+editor:SetPoint("TOPLEFT")
+editor:SetPoint("TOPRIGHT")
+editor:Hide()
+
+local editorIntro = editor:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+editorIntro:SetPoint("TOPLEFT")
+editorIntro:SetPoint("RIGHT")
+editorIntro:SetJustifyH("LEFT")
+
+-- data is { preset =, field = "notes" or "author" }.
+StaticPopupDialogs["VIDEOPROFILES_PRESET_TEXT"] = {
+    text = "%s for '%s':",
+    button1 = ACCEPT,
+    button2 = CANCEL,
+    hasEditBox = true,
+    OnShow = function(self, data)
+        local editBox = PopupEditBox(self)
+        editBox:SetText(data.preset[data.field] or "")
+        editBox:HighlightText()
+        editBox:SetFocus()
+    end,
+    OnAccept = function(self, data)
+        local text = strtrim(PopupEditBox(self):GetText())
+        data.preset[data.field] = text ~= "" and text or nil
+        UI:Refresh()
+    end,
+    EditBoxOnEnterPressed = AcceptOnEnter,
+    EditBoxOnEscapePressed = function(editBox) editBox:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+local function EditorButton(label, field, anchor)
+    local button = CreateFrame("Button", nil, editor, "UIPanelButtonTemplate")
+    button:SetSize(80, 20)
+    button:SetText(label)
+    if anchor then button:SetPoint("LEFT", anchor, "RIGHT", 4, 0) end
+    button:SetScript("OnClick", function()
+        StaticPopup_Show("VIDEOPROFILES_PRESET_TEXT", label, UI.preset.name, { preset = UI.preset, field = field })
+    end)
+    return button
+end
+local notesButton = EditorButton("Notes", "notes")
+EditorButton("Author", "author", notesButton)
+
+local editorChecks, editorHeaders = {}, {}
+
+local function EditorCheck(i)
+    if editorChecks[i] then return editorChecks[i] end
+    local check = CreateFrame("CheckButton", nil, editor, "UICheckButtonTemplate")
+    check:SetSize(20, 20)
+    check.label = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    check.label:SetPoint("LEFT", check, "RIGHT", 2, 0)
+    check:SetScript("OnClick", function(self)
+        ns.SetPresetCVar(UI.preset, self.cvar, self:GetChecked())
+        UI:Refresh()
+    end)
+    editorChecks[i] = check
+    return check
+end
+
+local function EditorHeader(i)
+    if editorHeaders[i] then return editorHeaders[i] end
+    editorHeaders[i] = editor:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    return editorHeaders[i]
+end
+
+-- Lays out the picker and returns its height.
+local function RefreshEditor()
+    local preset, current = UI.preset, ns.CaptureCurrent()
+    editorIntro:SetText("Tick the settings '" .. preset.name .. "' should set. Ticking one takes your current value, "
+        .. "and Update sets them all to your current values. Everything else is left alone when the preset is applied.")
+    local y = editorIntro:GetStringHeight() + 8
+    notesButton:SetPoint("TOPLEFT", 0, -y)
+    y = y + 24
+    local checks, headers, group = 0, 0, nil
+    for _, cvar in ipairs(ns.GetSupportedCVars()) do
+        if cvar.group ~= group then
+            group = cvar.group
+            headers = headers + 1
+            local header = EditorHeader(headers)
+            header:SetPoint("TOPLEFT", 0, -(y + 6))
+            header:SetText(group)
+            header:Show()
+            y = y + 22
+        end
+        checks = checks + 1
+        local check = EditorCheck(checks)
+        local value, now = preset.cvars[cvar.name], current[cvar.name]
+        check.cvar = cvar.name
+        check:SetPoint("TOPLEFT", 4, -y)
+        check:SetChecked(value ~= nil)
+        if value == nil then
+            check.label:SetText("|cff808080" .. cvar.name .. ":  " .. tostring(now) .. "|r")
+        elseif value ~= now then
+            check.label:SetText("|cffff8040" .. cvar.name .. ":  " .. value .. "|r  (current: " .. tostring(now) .. ")")
+        else
+            check.label:SetText(cvar.name .. ":  " .. value)
+        end
+        check:Show()
+        y = y + 20
+    end
+    for i = checks + 1, #editorChecks do editorChecks[i]:Hide() end
+    for i = headers + 1, #editorHeaders do editorHeaders[i]:Hide() end
+    editor:SetHeight(y)
+    return y
+end
 
 -- false stands for the current settings and comes first.
 local function CompareChoices()
@@ -429,8 +552,22 @@ table.insert(UI.refreshers, function()
     local selectedName = UI:SelectedName()
     compareButton:SetText(UI.compareWith or "Current settings")
     compareButton:SetEnabled(selectedName ~= nil)
-    showAllButton:SetText(UI.showAll and "Show diffs" or "Show all")
+    if IsOwnPreset() then
+        showAllButton:SetText(UI.editing and "Done" or "Pick settings")
+    else
+        showAllButton:SetText(UI.showAll and "Show diffs" or "Show all")
+    end
     showAllButton:SetEnabled(selectedName ~= nil)
+
+    local editing = UI.editing and IsOwnPreset()
+    editor:SetShown(editing)
+    diffText:SetShown(not editing)
+    if editing then
+        local height = RefreshEditor()
+        diffContent:SetHeight(height)
+        UpdateScrollBar(diffScroll, height)
+        return
+    end
 
     local lines = {}
     if not selectedName then
@@ -446,7 +583,8 @@ table.insert(UI.refreshers, function()
             local by = UI.preset.author and ("Suggested by " .. UI.preset.author .. ". ") or ""
             table.insert(lines, "|cff80c0ff" .. by .. (UI.preset.notes or "") .. "|r")
             table.insert(lines, "|cff808080Applying it changes only the " .. ns.CountPresetCVars(UI.preset)
-                .. " settings below and keeps the rest of yours. Copy makes it a profile you can edit.|r")
+                .. " settings below and keeps the rest of yours. "
+                .. (UI.preset.bundled and "Copy makes it a profile or preset you can change." or "Pick settings chooses which ones it sets.") .. "|r")
             table.insert(lines, "")
         end
         if UI.showAll then
