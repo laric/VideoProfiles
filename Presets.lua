@@ -225,6 +225,24 @@ function ns.SetPresetCVar(preset, name, included)
     preset.saved = time()
 end
 
+-- Sets a value of the player's own choosing, which needn't match the current one.
+function ns.SetPresetValue(preset, name, value)
+    preset.cvars[name] = value
+    preset.saved = time()
+end
+
+AddSubcommand("set", "<name> > <cvar> <value>", "set a value in a preset, adding the CVar if it isn't there", function(rest)
+    local name, cvar, value = rest:match("^(.-)%s*>%s*(%S+)%s+(.-)%s*$")
+    local preset = name and FindOwn(name)
+    if not preset then return end
+    local names = ParseCVarNames(cvar)
+    if #names == 0 or value == "" then
+        return ns.Print("Usage: /vp preset set <name> > <cvar> <value>. /vp cvars lists the CVars.")
+    end
+    ns.SetPresetValue(preset, names[1], value)
+    ns.Print("Set " .. names[1] .. " to " .. value .. " in '" .. preset.name .. "'.")
+end)
+
 AddSubcommand("add", "<name> > <cvar> <cvar> ...", "add CVars to a preset with your current values", function(rest)
     local name, list = rest:match("^(.-)%s*>%s*(.-)$")
     local preset = name and FindOwn(name)
