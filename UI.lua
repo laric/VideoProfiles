@@ -441,10 +441,36 @@ local function EditorCheck(i)
     check:SetSize(20, 20)
     check.label = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     check.label:SetPoint("LEFT", check, "RIGHT", 2, 0)
+    check.label:SetWidth(180)
+    check.label:SetJustifyH("LEFT")
     check:SetScript("OnClick", function(self)
         ns.SetPresetCVar(UI.preset, self.cvar, self:GetChecked())
         UI:Refresh()
     end)
+
+    -- The preset's value, editable while the setting is ticked.
+    local value = CreateFrame("EditBox", nil, check, "InputBoxTemplate")
+    value:SetSize(70, 18)
+    value:SetPoint("LEFT", check.label, "RIGHT", 8, 0)
+    value:SetAutoFocus(false)
+    local function Save(self)
+        local text = strtrim(self:GetText())
+        if text ~= "" and UI.preset and UI.preset.cvars[check.cvar] then
+            ns.SetPresetValue(UI.preset, check.cvar, text)
+        end
+        UI:Refresh()
+    end
+    value:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    value:SetScript("OnEditFocusLost", Save)
+    value:SetScript("OnEscapePressed", function(self)
+        self:SetText(UI.preset.cvars[check.cvar] or "")
+        self:ClearFocus()
+    end)
+    check.value = value
+
+    -- Your current value, for comparison.
+    check.current = check:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    check.current:SetPoint("LEFT", value, "RIGHT", 8, 0)
     editorChecks[i] = check
     return check
 end
@@ -459,7 +485,8 @@ end
 local function RefreshEditor()
     local preset, current = UI.preset, ns.CaptureCurrent()
     editorIntro:SetText("Tick the settings '" .. preset.name .. "' should set. Ticking one takes your current value, "
-        .. "and Update sets them all to your current values. Everything else is left alone when the preset is applied.")
+        .. "which you can then change in its box. Update sets them all to your current values. "
+        .. "Everything else is left alone when the preset is applied.")
     local y = editorIntro:GetStringHeight() + 8
     notesButton:SetPoint("TOPLEFT", 0, -y)
     y = y + 24
@@ -480,13 +507,20 @@ local function RefreshEditor()
         check.cvar = cvar.name
         check:SetPoint("TOPLEFT", 4, -y)
         check:SetChecked(value ~= nil)
-        if value == nil then
-            check.label:SetText("|cff808080" .. cvar.name .. ":  " .. tostring(now) .. "|r")
-        elseif value ~= now then
-            check.label:SetText("|cffff8040" .. cvar.name .. ":  " .. value .. "|r  (current: " .. tostring(now) .. ")")
-        else
-            check.label:SetText(cvar.name .. ":  " .. value)
+        check.value:SetShown(value ~= nil)
+        -- Don't overwrite what is being typed.
+        if value ~= nil and not check.value:HasFocus() then
+            check.value:SetText(value)
+            check.value:SetCursorPosition(0)
         end
+        if value == nil then
+            check.label:SetText("|cff808080" .. cvar.name .. "|r")
+        elseif value ~= now then
+            check.label:SetText("|cffff8040" .. cvar.name .. "|r")
+        else
+            check.label:SetText(cvar.name)
+        end
+        check.current:SetText("current: " .. tostring(now))
         check:Show()
         y = y + 20
     end
