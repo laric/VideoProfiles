@@ -1,0 +1,7 @@
+package-as: VideoProfiles
+enable-nolib-creation: no
+externals:
+  Libs/LibStub: https://repos.wowace.com/wow/libstub/trunk
+  Libs/LibDeflate:
+    url: https://github.com/SafeteeWoW/LibDeflate
+    tag: 1.0.2-release

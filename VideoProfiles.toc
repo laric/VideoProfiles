@@ -1,0 +1,18 @@
+## Interface: 120105, 120107, 16001
+## Title: VideoProfiles
+## Notes: Save your video settings as named profiles and swap between them.
+## Author: Michael Irving
+## Version: @project-version@
+## SavedVariables: VideoProfilesDB
+
+Libs\LibStub\LibStub.lua
+Libs\LibDeflate\LibDeflate.lua
+Core.lua
+CVars.lua
+Profiles.lua
+Apply.lua
+Diff.lua
+Export.lua
+CopyBox.lua
+Options.lua
+UI.lua
