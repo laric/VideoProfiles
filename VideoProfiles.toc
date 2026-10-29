@@ -2,6 +2,7 @@
 ## Title: VideoProfiles
 ## Notes: Save your video settings as named profiles and swap between them.
 ## Author: Michael Irving
+## IconTexture: Interface\AddOns\VideoProfiles\Media\icon
 ## Version: @project-version@
 ## SavedVariables: VideoProfilesDB
 
