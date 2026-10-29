@@ -4,11 +4,13 @@ local addonName, ns = ...
 -- Compares two { [cvar] = value } tables over the supported CVars, in list order.
 -- Returns { { name =, group =, a =, b = }, ... } for each CVar whose values differ.
 -- A value missing from one side (saved on another client) shows as nil.
-function ns.DiffValues(a, b)
+-- With only given, CVars missing from that table are left out, so a partial
+-- preset is compared on just the settings it sets.
+function ns.DiffValues(a, b, only)
     local diffs = {}
     for _, cvar in ipairs(ns.GetSupportedCVars()) do
         local va, vb = a[cvar.name], b[cvar.name]
-        if va ~= vb then
+        if va ~= vb and (not only or only[cvar.name] ~= nil) then
             table.insert(diffs, { name = cvar.name, group = cvar.group, a = va, b = vb })
         end
     end
