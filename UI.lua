@@ -416,7 +416,17 @@ local function EditorButton(label, field, anchor)
     button:SetText(label)
     if anchor then button:SetPoint("LEFT", anchor, "RIGHT", 4, 0) end
     button:SetScript("OnClick", function()
-        StaticPopup_Show("VIDEOPROFILES_PRESET_TEXT", label, UI.preset.name, { preset = UI.preset, field = field })
+        local preset = UI.preset
+        if field == "notes" then
+            -- Notes can run to several lines, so they get the big text box.
+            ns.ShowPasteBox("Notes for '" .. preset.name .. "'", SAVE, function(text)
+                text = strtrim(text)
+                preset.notes = text ~= "" and text or nil
+                UI:Refresh()
+            end, preset.notes)
+        else
+            StaticPopup_Show("VIDEOPROFILES_PRESET_TEXT", label, preset.name, { preset = preset, field = field })
+        end
     end)
     return button
 end
