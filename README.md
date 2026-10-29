@@ -41,3 +41,8 @@ its CVar name, and unknown names are skipped on import.
 Applying a profile is refused in combat. When display CVars such as resolution
 or MSAA change, the graphics engine restarts. Afterwards a popup offers to
 reload the UI (it can be turned off on the options page), since changing CVars from an addon can taint the default UI.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The bundled LibStub is public domain and LibDeflate is
+under the zlib license.

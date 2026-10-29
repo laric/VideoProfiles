@@ -6,6 +6,7 @@
 ## Version: @project-version@
 ## SavedVariables: VideoProfilesDB
 ## X-Curse-Project-ID: 1771944
+## X-License: MIT
 
 Libs\LibStub\LibStub.lua
 Libs\LibDeflate\LibDeflate.lua
