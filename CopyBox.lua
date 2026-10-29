@@ -56,6 +56,9 @@ local function Create()
         if userInput and not box.onAccept then self:SetText(box.text) self:HighlightText() end
     end)
     scroll:SetScrollChild(edit)
+    -- The edit box is only as tall as its text, so a click below it focuses it too.
+    scroll:EnableMouse(true)
+    scroll:SetScript("OnMouseDown", function() edit:SetFocus() end)
     box.edit = edit
 end
 
