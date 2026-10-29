@@ -185,17 +185,23 @@ StaticPopupDialogs["VIDEOPROFILES_RENAME"] = {
     button1 = ACCEPT,
     button2 = CANCEL,
     hasEditBox = true,
-    OnShow = function(self, old)
+    -- data is a profile name, or one of your presets.
+    OnShow = function(self, data)
         local editBox = PopupEditBox(self)
-        editBox:SetText(old)
+        editBox:SetText(type(data) == "table" and data.name or data)
         editBox:HighlightText()
         editBox:SetFocus()
     end,
-    OnAccept = function(self, old)
+    OnAccept = function(self, data)
         local new = strtrim(PopupEditBox(self):GetText())
-        ns.commands.rename.run(old .. " > " .. new)
-        UI.selected = ns.FindProfile(new) or UI.selected
-        UI:Refresh()
+        if type(data) == "table" then
+            ns.RenamePreset(data, new)
+            UI:Select(data.name, data)
+        else
+            ns.commands.rename.run(data .. " > " .. new)
+            UI.selected = ns.FindProfile(new) or UI.selected
+            UI:Refresh()
+        end
     end,
     EditBoxOnEnterPressed = AcceptOnEnter,
     EditBoxOnEscapePressed = function(editBox) editBox:GetParent():Hide() end,
@@ -205,20 +211,33 @@ StaticPopupDialogs["VIDEOPROFILES_RENAME"] = {
     preferredIndex = 3,
 }
 
+-- "Name 2", "Name 3"... whichever is free as both a profile and a preset name.
+local function FreeCopyName(base)
+    local n = 2
+    while ns.FindProfile(base .. " " .. n) or ns.FindPreset(base .. " " .. n) do n = n + 1 end
+    return base .. " " .. n
+end
+
+-- data is { name =, isPreset = } for what is being copied.
 StaticPopupDialogs["VIDEOPROFILES_COPY"] = {
-    text = "Copy '%s' to a new profile named:",
-    button1 = ACCEPT,
+    text = "Copy '%s' to a new profile or preset named:",
+    button1 = "Profile",
+    button3 = "Preset",
     button2 = CANCEL,
     hasEditBox = true,
-    OnShow = function(self, source)
+    OnShow = function(self, data)
         local editBox = PopupEditBox(self)
-        editBox:SetText(ns.FreeProfileName(source))
+        editBox:SetText(FreeCopyName(data.name))
         editBox:HighlightText()
         editBox:SetFocus()
     end,
-    OnAccept = function(self, source)
-        local new = ns.CopyToProfile(source, strtrim(PopupEditBox(self):GetText()))
+    OnAccept = function(self, data)
+        local new = ns.CopyToProfile(data.name, strtrim(PopupEditBox(self):GetText()), data.isPreset)
         if new then UI:Select(new) end
+    end,
+    OnAlt = function(self, data)
+        local preset = ns.CopyToPreset(data.name, strtrim(PopupEditBox(self):GetText()), not data.isPreset)
+        if preset then UI:Select(preset.name, preset) end
     end,
     EditBoxOnEnterPressed = AcceptOnEnter,
     EditBoxOnEscapePressed = function(editBox) editBox:GetParent():Hide() end,
@@ -229,11 +248,16 @@ StaticPopupDialogs["VIDEOPROFILES_COPY"] = {
 }
 
 StaticPopupDialogs["VIDEOPROFILES_DELETE"] = {
-    text = "Delete the profile '%s'?",
+    text = "Delete '%s'?",
     button1 = DELETE,
     button2 = CANCEL,
-    OnAccept = function(_, name)
-        ns.commands.delete.run(name)
+    -- data is a profile name, or one of your presets.
+    OnAccept = function(_, data)
+        if type(data) == "table" then
+            ns.commands.preset.run("delete " .. data.name)
+        else
+            ns.commands.delete.run(data)
+        end
         UI:Refresh()
     end,
     timeout = 0,
@@ -244,8 +268,8 @@ StaticPopupDialogs["VIDEOPROFILES_DELETE"] = {
 
 local buttons = {}
 
--- needs: nil for always enabled, "profile" when a profile must be selected,
--- "any" when a profile or a preset will do.
+-- needs: nil for always enabled, "editable" for a profile or one of your own
+-- presets, "any" when a bundled preset will do too.
 local function AddButton(label, needs, onClick)
     local button = CreateFrame("Button", nil, UI, "UIPanelButtonTemplate")
     button:SetSize(74, 22)
@@ -265,7 +289,7 @@ AddButton("New", nil, function()
 end)
 AddButton("Copy", "any", function()
     local name = UI:SelectedName()
-    StaticPopup_Show("VIDEOPROFILES_COPY", name, nil, name)
+    StaticPopup_Show("VIDEOPROFILES_COPY", name, nil, { name = name, isPreset = UI.preset ~= nil })
 end)
 AddButton("Apply", "any", function()
     if UI.preset then
@@ -275,18 +299,26 @@ AddButton("Apply", "any", function()
     end
     UI:Refresh()
 end)
-AddButton("Update", "profile", function()
-    ns.commands.update.run(UI.selected)
+AddButton("Update", "editable", function()
+    if UI.preset then
+        ns.commands.preset.run("update " .. UI.preset.name)
+    else
+        ns.commands.update.run(UI.selected)
+    end
     UI:Refresh()
 end)
-AddButton("Rename", "profile", function()
-    StaticPopup_Show("VIDEOPROFILES_RENAME", UI.selected, nil, UI.selected)
+AddButton("Rename", "editable", function()
+    StaticPopup_Show("VIDEOPROFILES_RENAME", UI:SelectedName(), nil, UI.preset or UI.selected)
 end)
-AddButton("Delete", "profile", function()
-    StaticPopup_Show("VIDEOPROFILES_DELETE", UI.selected, nil, UI.selected)
+AddButton("Delete", "editable", function()
+    StaticPopup_Show("VIDEOPROFILES_DELETE", UI:SelectedName(), nil, UI.preset or UI.selected)
 end)
-AddButton("Export", "profile", function()
-    ns.ShowExport(UI.selected)
+AddButton("Export", "any", function()
+    if UI.preset then
+        ns.ShowExportPreset(UI.preset)
+    else
+        ns.ShowExport(UI.selected)
+    end
 end)
 AddButton("Import", nil, function()
     ns.ShowImport()
@@ -295,7 +327,7 @@ end)
 table.insert(UI.refreshers, function()
     for _, button in ipairs(buttons) do
         local enabled = not button.needs
-            or button.needs == "profile" and UI.selected ~= nil
+            or button.needs == "editable" and (UI.selected ~= nil or UI.preset ~= nil and not UI.preset.bundled)
             or button.needs == "any" and UI:SelectedName() ~= nil
         button:SetEnabled(enabled)
     end
