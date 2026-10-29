@@ -133,3 +133,71 @@ AddSubcommand("apply", "<name>", "apply a preset's settings, keeping the rest of
     if not preset then return NoPreset(name) end
     ns.UsePreset(preset)
 end)
+
+-- The player's own presets can be changed; bundled ones can't.
+local function FindOwn(name)
+    local preset = name ~= "" and ns.FindPreset(name)
+    if not preset then return NoPreset(name) end
+    if preset.bundled then
+        ns.Print("'" .. preset.name .. "' comes with the addon and can't be changed. Use /vp preset copy " .. preset.name .. " to make your own.")
+        return
+    end
+    return preset
+end
+
+-- "Name", or "Name 2", "Name 3"... if that is taken.
+function ns.FreePresetName(base)
+    local name, n = base, 1
+    while ns.FindPreset(name) do
+        n = n + 1
+        name = base .. " " .. n
+    end
+    return name
+end
+
+-- Why a name can't be used for a new preset, or nil if it can.
+local function NameProblem(name, except)
+    if name == "" then return "A preset needs a name." end
+    if name:find(">", 1, true) then return "Preset names can't contain '>'." end
+    local clash = ns.FindPreset(name)
+    if clash and clash ~= except then return "A preset called '" .. clash.name .. "' already exists." end
+end
+
+-- Makes a preset of the player's. Returns it, or nil after saying why not.
+function ns.NewPreset(name, cvars)
+    name = ns.Unquote(name)
+    local problem = NameProblem(name)
+    if problem then return ns.Print(problem) end
+    local preset = { name = name, cvars = cvars or {}, saved = time() }
+    ns.db.presets[name] = preset
+    return preset
+end
+
+-- Matches CVar names typed in chat to the supported ones, ignoring case.
+local function ParseCVarNames(text)
+    local byLower = {}
+    for _, cvar in ipairs(ns.GetSupportedCVars()) do byLower[cvar.name:lower()] = cvar.name end
+    local names, unknown = {}, {}
+    for word in text:gmatch("[^%s,]+") do
+        local name = byLower[word:lower()]
+        if name then table.insert(names, name) else table.insert(unknown, word) end
+    end
+    return names, unknown
+end
+
+AddSubcommand("new", "<name> [> <cvar> <cvar> ...]", "make a preset from your current values of the CVars you list (or pick them in the options)", function(rest)
+    local name, list = rest:match("^(.-)%s*>%s*(.-)$")
+    if not name then name, list = rest, "" end
+    local names, unknown = ParseCVarNames(list)
+    if #unknown > 0 then
+        ns.Print("Unknown or unsupported CVars: " .. table.concat(unknown, ", ") .. ". /vp cvars lists them.")
+        return
+    end
+    local current, cvars = ns.CaptureCurrent(), {}
+    for _, cvar in ipairs(names) do cvars[cvar] = current[cvar] end
+    local preset = ns.NewPreset(name, cvars)
+    if preset then
+        ns.Print("Made the preset '" .. preset.name .. "' with " .. #names .. " settings."
+            .. (#names == 0 and " Pick its settings in /vp, or with /vp preset add." or ""))
+    end
+end)
