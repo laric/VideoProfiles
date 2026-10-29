@@ -63,6 +63,16 @@ list:SetScrollChild(listContent)
 
 local rows = {}
 
+-- Sits on the Presets heading in the list.
+local newPresetButton = CreateFrame("Button", nil, listContent, "UIPanelButtonTemplate")
+newPresetButton:SetSize(50, 18)
+newPresetButton:SetText("New")
+newPresetButton:SetFrameLevel(listContent:GetFrameLevel() + 5)
+newPresetButton:SetScript("OnClick", function()
+    StaticPopup_Show("VIDEOPROFILES_NEW_PRESET")
+end)
+UI.newPresetButton = newPresetButton
+
 local function GetRow(i)
     if rows[i] then return rows[i] end
     local row = CreateFrame("Button", nil, listContent)
@@ -86,6 +96,7 @@ end
 table.insert(UI.refreshers, function()
     local names = ns.GetProfileNames()
     if UI.selected and not ns.db.profiles[UI.selected] then UI.selected = nil end
+    if UI.preset and not UI.preset.bundled and ns.db.presets[UI.preset.name] ~= UI.preset then UI.preset = nil end
     if not UI.selected and not UI.preset then UI.selected = ns.db.active or names[1] end
     local count = 0
     local function NextRow(name, preset, text)
@@ -101,12 +112,15 @@ table.insert(UI.refreshers, function()
     for _, name in ipairs(names) do
         NextRow(name, nil, name == ns.db.active and (name .. " |cff00ff00(active)|r") or name)
     end
-    if #ns.presets > 0 then
-        if #names > 0 then NextRow(nil, nil, "") end
-        NextRow(nil, nil, "|cffffd100Suggested presets|r")
-        for _, preset in ipairs(ns.presets) do
-            NextRow(preset.name, preset, "|cff80c0ff" .. preset.name .. "|r")
-        end
+    if #names > 0 then NextRow(nil, nil, "") end
+    NextRow(nil, nil, "|cffffd100Presets|r")
+    UI.newPresetButton:SetPoint("RIGHT", rows[count], "RIGHT", -2, 0)
+    -- Your own presets first, then the bundled ones in blue.
+    for _, preset in ipairs(ns.GetUserPresets()) do
+        NextRow(preset.name, preset, preset.name)
+    end
+    for _, preset in ipairs(ns.presets) do
+        NextRow(preset.name, preset, "|cff80c0ff" .. preset.name .. "|r")
     end
     for i = count + 1, #rows do rows[i]:Hide() end
     listContent:SetHeight(math.max(1, count * ROW_HEIGHT))
@@ -135,6 +149,27 @@ StaticPopupDialogs["VIDEOPROFILES_NEW"] = {
         ns.commands.save.run(name)
         if ns.FindProfile(name) then
             UI:Select(ns.FindProfile(name))
+        end
+    end,
+    EditBoxOnEnterPressed = AcceptOnEnter,
+    EditBoxOnEscapePressed = function(editBox) editBox:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+StaticPopupDialogs["VIDEOPROFILES_NEW_PRESET"] = {
+    text = "New preset named:\n\nA preset sets only the settings you pick for it. Pick them on the right afterwards.",
+    button1 = ACCEPT,
+    button2 = CANCEL,
+    hasEditBox = true,
+    OnShow = function(self) PopupEditBox(self):SetFocus() end,
+    OnAccept = function(self)
+        local preset = ns.NewPreset(strtrim(PopupEditBox(self):GetText()))
+        if preset then
+            UI.editing = true
+            UI:Select(preset.name, preset)
         end
     end,
     EditBoxOnEnterPressed = AcceptOnEnter,
