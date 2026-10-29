@@ -15,8 +15,23 @@ Type `/vp` or open **Options > AddOns > VideoProfiles**. Select a profile on
 the left; the right side shows what differs from your current settings, or
 from another profile picked from the **Compare with** list. **Show all**
 lists every value in the profile instead, highlighting the ones that
-differ. The buttons below the list save, apply, update, rename, delete, export
-and import profiles.
+differ. The buttons below the list save, copy, apply, update, rename, delete,
+export and import profiles.
+
+## Presets
+
+Below your profiles the list shows **Suggested presets** that come with the
+addon. A preset usually sets only a few settings, such as a creator's
+recommended raid effects; applying it changes just those and keeps everything
+else as you have it. Selecting one shows its notes and how its values compare
+with your settings. Presets can't be edited, but **Copy** turns one into your
+own profile: your current settings with the preset's values on top.
+
+To add a preset, put a file in `Presets/` (see `Presets/Examples.lua`) that
+calls `ns.AddPreset` with a name, author, notes and the CVars it sets, and list
+the file in `VideoProfiles.toc`.
+
+## Export and import
 
 **Export** gives a compressed string (about 330 characters) you can copy to
 another computer and paste into **Import** there. Every setting is stored with
@@ -29,7 +44,10 @@ its CVar name, and unknown names are skipped on import.
 | `/vp update <name>` | overwrite a profile with your current settings |
 | `/vp apply <name>` | switch to a profile |
 | `/vp applyreload <name>` | switch to a profile and reload the UI at once, handy in macros |
-| `/vp diff <name> [> <other>]` | list differences from current settings or another profile |
+| `/vp diff <name> [> <other>]` | list differences from current settings or another profile; presets are compared on the settings they set |
+| `/vp copy <name> [> <new>]` | copy a profile, or make a preset into your own profile |
+| `/vp presets` | list the suggested presets that come with the addon |
+| `/vp usepreset <name>` | apply a preset's settings, keeping the rest of yours |
 | `/vp rename <old> > <new>` | rename a profile |
 | `/vp delete <name>` | delete a profile |
 | `/vp export <name>` | show a profile as a string to copy to another computer |
