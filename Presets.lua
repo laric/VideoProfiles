@@ -242,3 +242,28 @@ AddSubcommand("update", "<name>", "set a preset's values to your current ones, k
     ns.UpdatePreset(preset)
     ns.Print("Updated '" .. preset.name .. "' with your current values.")
 end)
+
+function ns.RenamePreset(preset, new)
+    new = ns.Unquote(new)
+    local problem = NameProblem(new, preset)
+    if problem then return ns.Print(problem) end
+    ns.db.presets[preset.name] = nil
+    ns.Print("Renamed '" .. preset.name .. "' to '" .. new .. "'.")
+    preset.name = new
+    ns.db.presets[new] = preset
+    return true
+end
+
+AddSubcommand("rename", "<old> > <new>", "rename one of your presets", function(rest)
+    local old, new = rest:match("^(.-)%s*>%s*(.-)$")
+    if not old then return ns.Print("Usage: /vp preset rename <old> > <new>") end
+    local preset = FindOwn(old)
+    if preset then ns.RenamePreset(preset, new) end
+end)
+
+AddSubcommand("delete", "<name>", "delete one of your presets", function(name)
+    local preset = FindOwn(name)
+    if not preset then return end
+    ns.db.presets[preset.name] = nil
+    ns.Print("Deleted the preset '" .. preset.name .. "'.")
+end)
