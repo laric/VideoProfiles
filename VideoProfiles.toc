@@ -15,6 +15,7 @@ CVars.lua
 Profiles.lua
 Apply.lua
 Diff.lua
+Presets.lua
 Export.lua
 CopyBox.lua
 Options.lua
