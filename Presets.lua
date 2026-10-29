@@ -283,3 +283,28 @@ AddSubcommand("author", "<name> > <text>", "set who the preset is by, shown when
     preset.author = text ~= "" and text or nil
     ns.Print("Set the author of '" .. preset.name .. "'.")
 end)
+
+-- Copies a preset, or a whole profile, into a new preset of the player's.
+function ns.CopyToPreset(source, new)
+    local preset = ns.FindPreset(source)
+    local profile = not preset and ns.FindProfile(source)
+    if not preset and not profile then
+        return ns.Print("No preset or profile called '" .. source .. "'.")
+    end
+    local values = preset and preset.cvars or ns.db.profiles[profile].cvars
+    local cvars = {}
+    for k, v in pairs(values) do cvars[k] = v end
+    new = (new and new ~= "") and new or ns.FreePresetName(preset and preset.name or profile)
+    local copy = ns.NewPreset(new, cvars)
+    if not copy then return end
+    if preset then copy.notes, copy.author = preset.notes, preset.author end
+    ns.Print("Copied '" .. (preset and preset.name or profile) .. "' to the new preset '" .. copy.name .. "'.")
+    return copy
+end
+
+AddSubcommand("copy", "<name> [> <new>]", "copy a preset, or a whole profile, into a new preset you can change", function(rest)
+    local source, new = rest:match("^(.-)%s*>%s*(.-)$")
+    if not source then source = rest end
+    if source == "" then return ns.Print("Usage: /vp preset copy <name> [> <new>]") end
+    ns.CopyToPreset(source, new)
+end)
