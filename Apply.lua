@@ -6,13 +6,13 @@ local SetCVar = C_CVar and C_CVar.SetCVar or SetCVar
 
 -- Values are written in CVar list order, so a preset such as graphicsQuality
 -- is set before the individual settings it would otherwise reset.
+-- CVars missing from values are left as they are.
 -- Returns the number of CVars changed, or nil if applying was refused.
-function ns.ApplyProfile(name)
+function ns.ApplyValues(values)
     if InCombatLockdown() then
         ns.Print("Can't change video settings in combat. Try again afterwards.")
         return
     end
-    local values = ns.db.profiles[name].cvars
     local changed, needsRestart = 0, false
     for _, cvar in ipairs(ns.GetSupportedCVars()) do
         local value = values[cvar.name]
@@ -22,11 +22,16 @@ function ns.ApplyProfile(name)
             if cvar.restart then needsRestart = true end
         end
     end
-    ns.db.active = name
     -- Display, resolution and MSAA changes only take effect after a graphics restart.
     if needsRestart and RestartGx then
         RestartGx()
     end
+    return changed
+end
+
+function ns.ApplyProfile(name)
+    local changed = ns.ApplyValues(ns.db.profiles[name].cvars)
+    if changed then ns.db.active = name end
     return changed
 end
 
