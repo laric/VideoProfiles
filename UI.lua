@@ -31,7 +31,19 @@ ns.AddCommand("show", "", "open the profiles in Options > AddOns", function()
     if ns.OpenOptions then ns.OpenOptions() end
 end)
 
--- Profile list on the left. Clicking a row selects it.
+-- Selects a profile by name, or a bundled preset. Only one is selected at a time.
+function UI:Select(name, preset)
+    self.selected = not preset and name or nil
+    self.preset = preset
+    self:Refresh()
+end
+
+-- The name of whatever is selected, profile or preset.
+function UI:SelectedName()
+    return self.selected or (self.preset and self.preset.name)
+end
+
+-- Profile list on the left, with the bundled presets below it. Clicking a row selects it.
 local ROW_HEIGHT = 20
 local LIST_WIDTH = 190
 
@@ -65,8 +77,7 @@ local function GetRow(i)
     row.text:SetPoint("RIGHT", -4, 0)
     row.text:SetJustifyH("LEFT")
     row:SetScript("OnClick", function(self)
-        UI.selected = self.name
-        UI:Refresh()
+        UI:Select(self.name, self.preset)
     end)
     rows[i] = row
     return row
@@ -75,17 +86,31 @@ end
 table.insert(UI.refreshers, function()
     local names = ns.GetProfileNames()
     if UI.selected and not ns.db.profiles[UI.selected] then UI.selected = nil end
-    if not UI.selected then UI.selected = ns.db.active or names[1] end
-    for i, name in ipairs(names) do
-        local row = GetRow(i)
-        row.name = name
-        row.text:SetText(name == ns.db.active and (name .. " |cff00ff00(active)|r") or name)
-        row.selected:SetShown(name == UI.selected)
+    if not UI.selected and not UI.preset then UI.selected = ns.db.active or names[1] end
+    local count = 0
+    local function NextRow(name, preset, text)
+        count = count + 1
+        local row = GetRow(count)
+        row.name, row.preset = name, preset
+        row.text:SetText(text)
+        row.selected:SetShown(name ~= nil and (preset and preset == UI.preset or not preset and name == UI.selected))
+        -- Rows without a name are section headings.
+        row:SetEnabled(name ~= nil)
         row:Show()
     end
-    for i = #names + 1, #rows do rows[i]:Hide() end
-    listContent:SetHeight(math.max(1, #names * ROW_HEIGHT))
-    UpdateScrollBar(list, #names * ROW_HEIGHT)
+    for _, name in ipairs(names) do
+        NextRow(name, nil, name == ns.db.active and (name .. " |cff00ff00(active)|r") or name)
+    end
+    if #ns.presets > 0 then
+        if #names > 0 then NextRow(nil, nil, "") end
+        NextRow(nil, nil, "|cffffd100Suggested presets|r")
+        for _, preset in ipairs(ns.presets) do
+            NextRow(preset.name, preset, "|cff80c0ff" .. preset.name .. "|r")
+        end
+    end
+    for i = count + 1, #rows do rows[i]:Hide() end
+    listContent:SetHeight(math.max(1, count * ROW_HEIGHT))
+    UpdateScrollBar(list, count * ROW_HEIGHT)
 end)
 
 -- Buttons along the bottom. They run the same code as the slash commands.
