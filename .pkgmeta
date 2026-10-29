@@ -5,3 +5,8 @@ externals:
   Libs/LibDeflate:
     url: https://github.com/SafeteeWoW/LibDeflate
     tag: 1.0.2-release
+ignore:
+    - Libs/LibStub/tests
+    - Libs/LibDeflate/docs
+    - Media/logo*.svg
+  
