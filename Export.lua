@@ -6,6 +6,9 @@
 -- older version can never put a value on the wrong setting. On import, names
 -- that aren't video CVars this addon knows are skipped.
 --
+-- A preset adds "#=preset" after the name, and "#a=" and "#n=" for its author
+-- and notes if it has them. Older versions skip these and import it as a profile.
+--
 -- The pairs are then compressed with LibDeflate and made printable:
 --   "VP2:" .. EncodeForPrint(CompressDeflateWithDict(pairs))
 -- The dictionary below holds the CVar names, so they cost almost nothing.
@@ -47,10 +50,19 @@ local function KnownCVars()
     return known
 end
 
-function ns.ExportProfile(name)
-    local values = ns.db.profiles[name].cvars
-    -- ";" separates pairs, so it can't appear in the name or a value.
-    local pairsList = { "@=" .. name:gsub(";", "") }
+-- ";" separates pairs, so it can't appear in a name, a value or the notes.
+local function Clean(text)
+    return (text:gsub(";", ","))
+end
+
+-- meta is { preset = true, author =, notes = } for a preset, or nil.
+local function Encode(name, values, meta)
+    local pairsList = { "@=" .. Clean(name) }
+    if meta and meta.preset then
+        table.insert(pairsList, "#=preset")
+        if meta.author then table.insert(pairsList, "#a=" .. Clean(meta.author)) end
+        if meta.notes then table.insert(pairsList, "#n=" .. Clean(meta.notes)) end
+    end
     for _, group in ipairs(ns.CVAR_GROUPS) do
         for _, cvar in ipairs(group.cvars) do
             local value = values[cvar.name]
@@ -61,6 +73,14 @@ function ns.ExportProfile(name)
     end
     local compressed = LibDeflate:CompressDeflateWithDict(table.concat(pairsList, ";"), DICTIONARY, { level = 9 })
     return PREFIX .. LibDeflate:EncodeForPrint(compressed)
+end
+
+function ns.ExportProfile(name)
+    return Encode(name, ns.db.profiles[name].cvars)
+end
+
+function ns.ExportPreset(preset)
+    return Encode(preset.name, preset.cvars, { preset = true, author = preset.author, notes = preset.notes })
 end
 
 -- Returns name, { [cvar] = value }, skipped count, or nil and an error message.
@@ -108,6 +128,10 @@ end
 
 function ns.ShowExport(name)
     ns.ShowCopyBox("Export '" .. name .. "'", ns.ExportProfile(name))
+end
+
+function ns.ShowExportPreset(preset)
+    ns.ShowCopyBox("Export the preset '" .. preset.name .. "'", ns.ExportPreset(preset))
 end
 
 local function Import(text)
