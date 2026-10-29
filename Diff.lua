@@ -17,7 +17,8 @@ function ns.DiffValues(a, b, only)
     return diffs
 end
 
--- Resolves a name to a values table. An empty name means the current settings.
+-- Resolves a name to a values table, and whether it is a partial preset.
+-- An empty name means the current settings. Profiles win over presets.
 local function Resolve(name)
     if name == "" or name:lower() == "current" then
         return "current settings", ns.CaptureCurrent()
@@ -26,22 +27,27 @@ local function Resolve(name)
     if existing then
         return "'" .. existing .. "'", ns.db.profiles[existing].cvars
     end
+    local preset = ns.FindPreset(name)
+    if preset then
+        return "preset '" .. preset.name .. "'", preset.cvars, true
+    end
 end
 
-ns.AddCommand("diff", "<name> [> <other>]", "show what differs from your current settings, or from another profile", function(rest)
+ns.AddCommand("diff", "<name> [> <other>]", "show what a profile or preset changes from your current settings, or from another profile", function(rest)
     local left, right = rest:match("^(.-)%s*>%s*(.-)$")
     if not left then left, right = rest, "" end
     if left == "" then
         ns.Print("Usage: /vp diff <name> [> <other>]")
         return
     end
-    local labelA, a = Resolve(left)
-    local labelB, b = Resolve(right)
+    local labelA, a, partialA = Resolve(left)
+    local labelB, b, partialB = Resolve(right)
     if not a or not b then
-        ns.Print("No profile called '" .. (a and right or left) .. "'. Use /vp list to see your profiles.")
+        ns.Print("No profile or preset called '" .. (a and right or left) .. "'. Use /vp list or /vp presets to see them.")
         return
     end
-    local diffs = ns.DiffValues(a, b)
+    -- A preset is only compared on the settings it sets.
+    local diffs = ns.DiffValues(a, b, partialA and a or partialB and b or nil)
     if #diffs == 0 then
         ns.Print(labelA .. " and " .. labelB .. " are the same.")
         return
