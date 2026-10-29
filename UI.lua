@@ -234,7 +234,7 @@ AddButton("Copy", "any", function()
 end)
 AddButton("Apply", "any", function()
     if UI.preset then
-        ns.commands.usepreset.run(UI.preset.name)
+        ns.UsePreset(UI.preset)
     else
         ns.commands.apply.run(UI.selected)
     end

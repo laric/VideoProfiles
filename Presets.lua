@@ -54,7 +54,7 @@ function ns.CountPresetCVars(preset)
     return count
 end
 
-ns.AddCommand("presets", "", "list the suggested settings that come with the addon", function()
+local function ListPresets()
     local user = ns.GetUserPresets()
     if #ns.presets == 0 and #user == 0 then
         ns.Print("No presets yet.")
@@ -70,7 +70,7 @@ ns.AddCommand("presets", "", "list the suggested settings that come with the add
         DEFAULT_CHAT_FRAME:AddMessage("  " .. preset.name .. by .. " (" .. ns.CountPresetCVars(preset) .. " settings)"
             .. (preset.notes and (": " .. preset.notes) or ""))
     end
-end)
+end
 
 -- Only the preset's own CVars are written. The settings then no longer match
 -- the active profile, so that is cleared.
@@ -80,13 +80,8 @@ function ns.ApplyPreset(preset)
     return changed
 end
 
-local function NoPreset(name)
-    ns.Print("No preset called '" .. name .. "'. Use /vp presets to see them.")
-end
-
-ns.AddCommand("usepreset", "<name>", "apply a preset's settings, keeping the rest of yours", function(name)
-    local preset = name ~= "" and ns.FindPreset(name)
-    if not preset then return NoPreset(name) end
+-- Applies a preset and reports the result, offering a reload.
+function ns.UsePreset(preset)
     local changed = ns.ApplyPreset(preset)
     if not changed then return end
     if changed == 0 then
@@ -95,4 +90,46 @@ ns.AddCommand("usepreset", "<name>", "apply a preset's settings, keeping the res
         ns.Print("Applied the preset '" .. preset.name .. "' (" .. changed .. " settings changed).")
         if ns.db.askReload then StaticPopup_Show("VIDEOPROFILES_RELOAD", preset.name) end
     end
+end
+
+local function NoPreset(name)
+    ns.Print("No preset called '" .. name .. "'. Use /vp preset list to see them.")
+end
+
+-- /vp preset <command> [args]. Presets get their own commands, so a preset
+-- and a profile may share a name.
+local subcommands, subcommandOrder = {}, {}
+
+local function AddSubcommand(name, args, help, run)
+    subcommands[name] = { args = args, help = help, run = run }
+    table.insert(subcommandOrder, name)
+end
+
+local function PrintSubcommands()
+    ns.Print("preset commands:")
+    for _, name in ipairs(subcommandOrder) do
+        local cmd = subcommands[name]
+        local usage = cmd.args ~= "" and (name .. " " .. cmd.args) or name
+        DEFAULT_CHAT_FRAME:AddMessage("  /vp preset " .. usage .. " - " .. cmd.help)
+    end
+end
+
+ns.AddCommand("preset", "<command> [name]", "list, apply, make and share presets; /vp preset help for more", function(rest)
+    local name, args = rest:match("^(%S*)%s*(.-)$")
+    local cmd = subcommands[name:lower()]
+    if cmd then
+        cmd.run(args)
+    else
+        PrintSubcommands()
+    end
+end)
+
+ns.AddCommand("presets", "", "list the presets", ListPresets)
+
+AddSubcommand("list", "", "list the presets", ListPresets)
+
+AddSubcommand("apply", "<name>", "apply a preset's settings, keeping the rest of yours", function(name)
+    local preset = name ~= "" and ns.FindPreset(name)
+    if not preset then return NoPreset(name) end
+    ns.UsePreset(preset)
 end)

@@ -46,8 +46,8 @@ its CVar name, and unknown names are skipped on import.
 | `/vp applyreload <name>` | switch to a profile and reload the UI at once, handy in macros |
 | `/vp diff <name> [> <other>]` | list differences from current settings or another profile; presets are compared on the settings they set |
 | `/vp copy <name> [> <new>]` | copy a profile, or make a preset into your own profile |
-| `/vp presets` | list the suggested presets that come with the addon |
-| `/vp usepreset <name>` | apply a preset's settings, keeping the rest of yours |
+| `/vp preset list` | list the presets |
+| `/vp preset apply <name>` | apply a preset's settings, keeping the rest of yours |
 | `/vp rename <old> > <new>` | rename a profile |
 | `/vp delete <name>` | delete a profile |
 | `/vp export <name>` | show a profile as a string to copy to another computer |
