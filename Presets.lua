@@ -267,3 +267,19 @@ AddSubcommand("delete", "<name>", "delete one of your presets", function(name)
     ns.db.presets[preset.name] = nil
     ns.Print("Deleted the preset '" .. preset.name .. "'.")
 end)
+
+AddSubcommand("notes", "<name> > <text>", "set the notes shown with one of your presets", function(rest)
+    local name, text = rest:match("^(.-)%s*>%s*(.-)$")
+    local preset = name and FindOwn(name)
+    if not preset then return end
+    preset.notes = text ~= "" and text or nil
+    ns.Print("Set the notes for '" .. preset.name .. "'.")
+end)
+
+AddSubcommand("author", "<name> > <text>", "set who the preset is by, shown when it is shared", function(rest)
+    local name, text = rest:match("^(.-)%s*>%s*(.-)$")
+    local preset = name and FindOwn(name)
+    if not preset then return end
+    preset.author = text ~= "" and text or nil
+    ns.Print("Set the author of '" .. preset.name .. "'.")
+end)
