@@ -151,6 +151,10 @@ AddSubcommand("apply", "<name>", "apply a preset's settings, keeping the rest of
     ns.UsePreset(preset)
 end)
 
+local function Usage(sub)
+    ns.Print("Usage: /vp preset " .. sub .. " " .. subcommands[sub].args)
+end
+
 -- The player's own presets can be changed; bundled ones can't.
 local function FindOwn(name)
     local preset = name ~= "" and ns.FindPreset(name)
@@ -233,19 +237,19 @@ end
 
 AddSubcommand("set", "<name> > <cvar> <value>", "set a value in a preset, adding the CVar if it isn't there", function(rest)
     local name, cvar, value = rest:match("^(.-)%s*>%s*(%S+)%s+(.-)%s*$")
-    local preset = name and FindOwn(name)
+    if not name then return Usage("set") end
+    local preset = FindOwn(name)
     if not preset then return end
     local names = ParseCVarNames(cvar)
-    if #names == 0 or value == "" then
-        return ns.Print("Usage: /vp preset set <name> > <cvar> <value>. /vp cvars lists the CVars.")
-    end
+    if #names == 0 or value == "" then return Usage("set") end
     ns.SetPresetValue(preset, names[1], value)
     ns.Print("Set " .. names[1] .. " to " .. value .. " in '" .. preset.name .. "'.")
 end)
 
 AddSubcommand("add", "<name> > <cvar> <cvar> ...", "add CVars to a preset with your current values", function(rest)
     local name, list = rest:match("^(.-)%s*>%s*(.-)$")
-    local preset = name and FindOwn(name)
+    if not name then return Usage("add") end
+    local preset = FindOwn(name)
     if not preset then return end
     local names, unknown = ParseCVarNames(list)
     for _, cvar in ipairs(names) do ns.SetPresetCVar(preset, cvar, true) end
@@ -255,7 +259,8 @@ end)
 
 AddSubcommand("remove", "<name> > <cvar> <cvar> ...", "take CVars out of a preset", function(rest)
     local name, list = rest:match("^(.-)%s*>%s*(.-)$")
-    local preset = name and FindOwn(name)
+    if not name then return Usage("remove") end
+    local preset = FindOwn(name)
     if not preset then return end
     local names = ParseCVarNames(list)
     for _, cvar in ipairs(names) do ns.SetPresetCVar(preset, cvar, false) end
@@ -305,7 +310,8 @@ end)
 
 AddSubcommand("notes", "<name> > <text>", "set the notes shown with one of your presets", function(rest)
     local name, text = rest:match("^(.-)%s*>%s*(.-)$")
-    local preset = name and FindOwn(name)
+    if not name then return Usage("notes") end
+    local preset = FindOwn(name)
     if not preset then return end
     preset.notes = text ~= "" and text or nil
     ns.Print("Set the notes for '" .. preset.name .. "'.")
@@ -313,7 +319,8 @@ end)
 
 AddSubcommand("author", "<name> > <text>", "set who the preset is by, shown when it is shared", function(rest)
     local name, text = rest:match("^(.-)%s*>%s*(.-)$")
-    local preset = name and FindOwn(name)
+    if not name then return Usage("author") end
+    local preset = FindOwn(name)
     if not preset then return end
     preset.author = text ~= "" and text or nil
     ns.Print("Set the author of '" .. preset.name .. "'.")
