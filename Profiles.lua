@@ -117,7 +117,7 @@ ns.AddCommand("rename", "<old> > <new>", "rename a profile", function(rest)
 end)
 
 -- "Name", or "Name 2", "Name 3"... if that is taken.
-local function FreeName(base)
+function ns.FreeProfileName(base)
     local name, n = base, 1
     while ns.FindProfile(name) do
         n = n + 1
@@ -135,7 +135,7 @@ function ns.CopyToProfile(source, new)
         ns.Print("No profile or preset called '" .. source .. "'.")
         return
     end
-    new = (new and new ~= "") and ns.Unquote(new) or FreeName(profile or preset.name)
+    new = (new and new ~= "") and ns.Unquote(new) or ns.FreeProfileName(profile or preset.name)
     if new:find(">", 1, true) then
         ns.Print("Profile names can't contain '>'.")
         return
