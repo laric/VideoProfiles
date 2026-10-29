@@ -226,3 +226,19 @@ AddSubcommand("remove", "<name> > <cvar> <cvar> ...", "take CVars out of a prese
     for _, cvar in ipairs(names) do ns.SetPresetCVar(preset, cvar, false) end
     ns.Print("Removed " .. #names .. " settings from '" .. preset.name .. "'.")
 end)
+
+-- Takes your current value of every CVar the preset sets.
+function ns.UpdatePreset(preset)
+    local current = ns.CaptureCurrent()
+    for name in pairs(preset.cvars) do
+        if current[name] ~= nil then preset.cvars[name] = current[name] end
+    end
+    preset.saved = time()
+end
+
+AddSubcommand("update", "<name>", "set a preset's values to your current ones, keeping which settings it has", function(name)
+    local preset = FindOwn(name)
+    if not preset then return end
+    ns.UpdatePreset(preset)
+    ns.Print("Updated '" .. preset.name .. "' with your current values.")
+end)
