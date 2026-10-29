@@ -28,8 +28,8 @@ notes and how its values compare with your settings.
 
 To make one, set the game up the way you want, click **New** on the Presets
 heading, then tick the settings it should set under **Pick settings**. Ticking
-a setting takes your current value; **Update** later sets them all to your
-current values. **Notes** and **Author** are shown with the preset and carried
+a setting takes your current value, which you can change in the box next to
+it; **Update** later sets them all to your current values. **Notes** and **Author** are shown with the preset and carried
 in its export string, so you can share it like a profile.
 
 Bundled presets can't be changed, but **Copy** turns any preset or profile into
@@ -62,6 +62,7 @@ its CVar name, and unknown names are skipped on import.
 | `/vp preset apply <name>` | apply a preset's settings, keeping the rest of yours |
 | `/vp preset new <name> [> <cvar> ...]` | make a preset from your current values of the listed CVars |
 | `/vp preset add` / `remove <name> > <cvar> ...` | add or take out CVars |
+| `/vp preset set <name> > <cvar> <value>` | set a value in a preset |
 | `/vp preset update`, `rename`, `delete`, `copy`, `export` | as for profiles, for your own presets |
 | `/vp preset notes` / `author <name> > <text>` | set the text shown and shared with a preset |
 | `/vp rename <old> > <new>` | rename a profile |
