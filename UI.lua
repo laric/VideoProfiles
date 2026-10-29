@@ -359,40 +359,52 @@ table.insert(UI.refreshers, function()
     if UI.compareWith and (UI.compareWith == UI.selected or not ns.db.profiles[UI.compareWith]) then
         UI.compareWith = nil
     end
+    local selectedName = UI:SelectedName()
     compareButton:SetText(UI.compareWith or "Current settings")
-    compareButton:SetEnabled(UI.selected ~= nil)
+    compareButton:SetEnabled(selectedName ~= nil)
     showAllButton:SetText(UI.showAll and "Show diffs" or "Show all")
-    showAllButton:SetEnabled(UI.selected ~= nil)
+    showAllButton:SetEnabled(selectedName ~= nil)
 
     local lines = {}
-    if not UI.selected then
+    if not selectedName then
         lines[1] = "Save a profile with New to get started."
     else
         local other = UI.compareWith and ns.db.profiles[UI.compareWith].cvars or ns.CaptureCurrent()
         local otherLabel = UI.compareWith or "current"
-        local values = ns.db.profiles[UI.selected].cvars
-        local diffs = ns.DiffValues(values, other)
+        local values = UI.preset and UI.preset.cvars or ns.db.profiles[UI.selected].cvars
+        -- A preset is partial, so only the settings it sets are compared or listed.
+        local only = UI.preset and values or nil
+        local diffs = ns.DiffValues(values, other, only)
+        if UI.preset then
+            local by = UI.preset.author and ("Suggested by " .. UI.preset.author .. ". ") or ""
+            table.insert(lines, "|cff80c0ff" .. by .. (UI.preset.notes or "") .. "|r")
+            table.insert(lines, "|cff808080Applying it changes only the " .. ns.CountPresetCVars(UI.preset)
+                .. " settings below and keeps the rest of yours. Copy makes it a profile you can edit.|r")
+            table.insert(lines, "")
+        end
         if UI.showAll then
             -- Every value in the profile; ones that differ are highlighted with the other value.
-            lines[1] = "|cffffd100" .. UI.selected .. "|r (" .. #diffs .. " differ from " .. otherLabel .. ")"
+            table.insert(lines, "|cffffd100" .. selectedName .. "|r (" .. #diffs .. " differ from " .. otherLabel .. ")")
             local group
             for _, cvar in ipairs(ns.GetSupportedCVars()) do
-                if cvar.group ~= group then
-                    group = cvar.group
-                    table.insert(lines, "")
-                    table.insert(lines, "|cffffd100" .. group .. "|r")
-                end
-                local value, otherValue = values[cvar.name], other[cvar.name]
-                if value ~= otherValue then
-                    table.insert(lines, "  |cffff8040" .. cvar.name .. ":  " .. ShowValue(value) .. "|r  (" .. otherLabel .. ": " .. ShowValue(otherValue) .. ")")
-                else
-                    table.insert(lines, "  " .. cvar.name .. ":  " .. ShowValue(value))
+                if not only or only[cvar.name] ~= nil then
+                    if cvar.group ~= group then
+                        group = cvar.group
+                        table.insert(lines, "")
+                        table.insert(lines, "|cffffd100" .. group .. "|r")
+                    end
+                    local value, otherValue = values[cvar.name], other[cvar.name]
+                    if value ~= otherValue then
+                        table.insert(lines, "  |cffff8040" .. cvar.name .. ":  " .. ShowValue(value) .. "|r  (" .. otherLabel .. ": " .. ShowValue(otherValue) .. ")")
+                    else
+                        table.insert(lines, "  " .. cvar.name .. ":  " .. ShowValue(value))
+                    end
                 end
             end
         elseif #diffs == 0 then
-            lines[1] = "No differences. '" .. UI.selected .. "' matches " .. (UI.compareWith and ("'" .. otherLabel .. "'") or "your current settings") .. "."
+            table.insert(lines, "No differences. '" .. selectedName .. "' matches " .. (UI.compareWith and ("'" .. otherLabel .. "'") or "your current settings") .. ".")
         else
-            lines[1] = "|cffffd100" .. #diffs .. " differences|r (" .. UI.selected .. " -> " .. otherLabel .. ")"
+            table.insert(lines, "|cffffd100" .. #diffs .. " differences|r (" .. selectedName .. " -> " .. otherLabel .. ")")
             local group
             for _, d in ipairs(diffs) do
                 if d.group ~= group then
