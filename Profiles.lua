@@ -115,3 +115,52 @@ ns.AddCommand("rename", "<old> > <new>", "rename a profile", function(rest)
     if ns.db.active == existing then ns.db.active = new end
     ns.Print("Renamed '" .. existing .. "' to '" .. new .. "'.")
 end)
+
+-- "Name", or "Name 2", "Name 3"... if that is taken.
+local function FreeName(base)
+    local name, n = base, 1
+    while ns.FindProfile(name) do
+        n = n + 1
+        name = base .. " " .. n
+    end
+    return name
+end
+
+-- Copies a profile, or turns a preset into a profile of your own: your current
+-- settings with the preset's values on top. Returns the new profile's name.
+function ns.CopyToProfile(source, new)
+    local profile = ns.FindProfile(source)
+    local preset = not profile and ns.FindPreset(source)
+    if not profile and not preset then
+        ns.Print("No profile or preset called '" .. source .. "'.")
+        return
+    end
+    new = (new and new ~= "") and ns.Unquote(new) or FreeName(profile or preset.name)
+    if new:find(">", 1, true) then
+        ns.Print("Profile names can't contain '>'.")
+        return
+    end
+    if ns.FindProfile(new) then
+        ns.Print("A profile called '" .. ns.FindProfile(new) .. "' already exists.")
+        return
+    end
+    local values = profile and ns.db.profiles[profile].cvars or ns.CaptureCurrent()
+    local cvars = {}
+    for k, v in pairs(values) do cvars[k] = v end
+    if preset then
+        for k, v in pairs(preset.cvars) do cvars[k] = v end
+    end
+    ns.db.profiles[new] = { cvars = cvars, saved = time() }
+    ns.Print("Copied '" .. (profile or preset.name) .. "' to the new profile '" .. new .. "'.")
+    return new
+end
+
+ns.AddCommand("copy", "<name> [> <new>]", "copy a profile, or make a preset into your own profile", function(rest)
+    local source, new = rest:match("^(.-)%s*>%s*(.-)$")
+    if not source then source = rest end
+    if source == "" then
+        ns.Print("Usage: /vp copy <name> [> <new>]")
+        return
+    end
+    ns.CopyToProfile(source, new)
+end)
