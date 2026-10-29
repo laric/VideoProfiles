@@ -70,6 +70,7 @@ function ns.CountPresetCVars(preset)
     return count
 end
 
+-- Notes can have several lines; chat shows the first.
 local function ListPresets()
     local user = ns.GetUserPresets()
     if #ns.presets == 0 and #user == 0 then
@@ -79,12 +80,12 @@ local function ListPresets()
     ns.Print("Presets (they change only the settings they list):")
     for _, preset in ipairs(user) do
         DEFAULT_CHAT_FRAME:AddMessage("  " .. preset.name .. " |cff00ff00(yours)|r (" .. ns.CountPresetCVars(preset) .. " settings)"
-            .. (preset.notes and (": " .. preset.notes) or ""))
+            .. (preset.notes and (": " .. preset.notes:match("[^\n]*")) or ""))
     end
     for _, preset in ipairs(ns.presets) do
         local by = preset.author and (" by " .. preset.author) or ""
         DEFAULT_CHAT_FRAME:AddMessage("  " .. preset.name .. by .. " (" .. ns.CountPresetCVars(preset) .. " settings)"
-            .. (preset.notes and (": " .. preset.notes) or ""))
+            .. (preset.notes and (": " .. preset.notes:match("[^\n]*")) or ""))
     end
 end
 
