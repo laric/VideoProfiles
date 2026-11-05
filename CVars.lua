@@ -11,10 +11,7 @@ ns.CVAR_GROUPS = {
             { name = "gxMaximize", restart = true },
             { name = "gxWindowedResolution", restart = true },
             { name = "gxFullscreenResolution", restart = true },
-            { name = "gxRefresh", restart = true },
-            { name = "gxVSync", restart = true },
-            { name = "vsync", restart = true }, -- newer clients' name for gxVSync
-            { name = "gxTripleBuffer", restart = true },
+            { name = "vsync", restart = true }, -- replaced gxVSync on Retail and WoW Forever
             { name = "LowLatencyMode" },
             { name = "renderScale" },
             { name = "ResampleQuality" },
@@ -91,7 +88,6 @@ ns.CVAR_GROUPS = {
             { name = "particleDensity" },
             { name = "groundEffectDensity" },
             { name = "groundEffectDist" },
-            { name = "environmentDetail" },
             { name = "shadowMode" },
             { name = "shadowTextureSize" },
             { name = "shadowRt" },
